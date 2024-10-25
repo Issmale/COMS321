@@ -1,0 +1,178 @@
+//Group Memebers: Issmale Bekri issmale, Emanuel Moreno morenoe, Akhil Pallem apallem 
+main:
+        // Initialize X0 to 0 and X1 to 512, X0 base address, X1 is number of elements
+        ADD X0, XZR, XZR                
+        ADDI X1, XZR, #512              
+
+        // Allocate space on the stack for two registers
+        SUBI SP, SP, #16
+        STUR X0, [SP, #0]
+        STUR X1, [SP, #8]
+
+        // Call the fill function
+        BL fill
+
+        // Sort the array using insertion sort
+        LDUR X1, [SP, #8]
+        LDUR X0, [SP, #0]
+        BL insertion_sort
+        ADDI X1, X1, #1
+
+        // Perform binary search operations and print the results
+        LDUR X0, [SP, #0]
+        ADD X1, XZR, XZR
+        LDUR X2, [SP, #8]
+
+        ADD X3, XZR, XZR                        
+        BL binary_search
+        PRNT X0
+
+        LDUR X0, [SP, #0]
+        ADD X1, XZR, XZR
+        LDUR X2, [SP, #8]
+
+        LDUR X3, [SP, #8]               
+        SUBI X3, X3, #1
+        BL binary_search
+        PRNT X0
+
+        LDUR X0, [SP, #0]
+        ADD X1, XZR, XZR
+        LDUR X2, [SP, #8]
+
+        LDUR X3, [SP, #8]
+        LSR X3, X3, #1                          
+        SUBI X3, X3, #1
+        BL binary_search
+        PRNT X0
+
+        LDUR X0, [SP, #0]
+        ADD X1, XZR, XZR
+        LDUR X2, [SP, #8]
+
+        LDUR X3, [SP, #8]                       
+        BL binary_search
+        PRNT X0
+        
+        // Restore stack pointer and return
+        LDUR X1, [SP, #8]
+        LDUR X0, [SP, #0]
+        ADDI SP, SP, #16
+
+        B end
+
+fill:
+        // Initialize X9 to X0 and X10 to X1 - 1
+        ADD X9, X0, XZR                         
+        SUBI X10, X1, #1                        
+
+        // Loop to fill the array with decreasing values
+        fill_loop:
+                CBZ  X10,end_fill
+        
+                STUR X10, [X9, #0]
+                ADDI X9, X9, #8         
+                
+                SUBI X10, X10, #1
+
+                B fill_loop
+
+        end_fill:       
+                STUR X10, [X9, #0]
+                BR LR
+
+insertion_sort:
+        // Initialize X11 to 0 and X12 to 0
+        ADD X11, XZR, XZR
+        ADD X12, XZR, XZR
+
+        // Loop for insertion sort
+        insertion_sort_loop:
+                ADDI X12, X12, #1
+                SUBS XZR, X12, X1
+                B.GE insertion_sort_loop_end
+
+                LSL X9, X12, #3
+                ADD X13, XZR, X9
+                LDUR X13, [X13, #0]
+                SUBI X14, X12, #1
+                B isShift
+
+        insertion_sort_loop_end:
+                BR LR
+
+isShift:
+        // Check if shift is needed
+        SUBS XZR, X14, XZR
+        B.LT isInsert
+
+        // Calculate the memory address of the previous element
+        LSL X10, X14, #3
+        ADD X0, X11, X10
+        LDUR X15, [X0, #0]
+        LDUR X9, [X0, #8]
+
+        // Compare the previous element with the current element
+        SUBS XZR, X15, X13
+        B.LT isInsert
+
+        STUR X15, [X0, #8]
+
+        SUBI X14, X14, #1
+        B isShift
+
+
+isInsert:
+        // Insert element into the array
+        STUR X13, [X11, #0]
+        B insertion_sort_loop
+
+binary_search:
+        // Initialize X12 to 0 and adjust X2
+        ADD X12, XZR, XZR
+        SUBI X2, X2, #1
+
+        // Binary search loop
+        binary_loop_start:
+                SUBS X13, X2, X12         // Calculate the size of the search space
+                B.LT binary_end_of_loop   // If size is negative, exit loop
+
+                ADD X14, X12, X2          // Calculate (start + end)
+                LSR X14, X14, #1          // Divide by 2 (right shift by 1)
+
+                LSL X13, X14, #3
+
+                ADD X13, X0, X13          // Calculate the memory address of the midpoint element
+                LDUR X13, [X13, #0]     // Load the value at the midpoint
+
+                SUBS X13, X13, X3
+
+                B.LT binary_less_than
+                B.GT binary_greater_than
+                B.EQ binary_equal
+                
+        // If the target value is found at the midpoint, return
+        binary_equal:
+                ADD X0, XZR, X14
+                BR LR
+
+        // If the target value is less than the value at the midpoint
+        binary_less_than:
+                ADDI X12, X14, #1
+                B binary_end_of_loop
+
+        // If the target value is greater than the value at the midpoint
+        binary_greater_than:
+                SUBI X2, X14, #1
+
+        // Calculate the size of the remaining search space and check if it's non-negative
+        binary_end_of_loop:
+                SUBS X13, X2, X12
+                B.GE binary_loop_start
+
+                SUBI X0, XZR, #1
+                BR LR
+
+end:
+        DUMP
+
